@@ -14,6 +14,8 @@ Select:
 1. The folder containing the practice Excel workbooks.
 2. The destination for `SEED_RUNNER.py`.
 
+Then click **יבא נתונים**. The lower log panel reports each workbook and the final success or error status.
+
 The generated runner exposes `run_seed(conn)` for inserting the parsed questions and answers into a compatible SQLite connection.
 
 ## Folder structure
