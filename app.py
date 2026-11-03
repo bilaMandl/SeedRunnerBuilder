@@ -8,6 +8,15 @@ from tkinter import filedialog, ttk
 from seed_builder import build_seed, write_runner
 
 
+def rounded_rectangle(canvas: tk.Canvas, x1: int, y1: int, x2: int, y2: int, radius: int, **kwargs):
+    points = [
+        x1 + radius, y1, x2 - radius, y1, x2, y1, x2, y1 + radius,
+        x2, y2 - radius, x2, y2, x2 - radius, y2, x1 + radius, y2,
+        x1, y2, x1, y2 - radius, x1, y1 + radius, x1, y1,
+    ]
+    return canvas.create_polygon(points, smooth=True, **kwargs)
+
+
 class SeedBuilderApp(tk.Tk):
     def __init__(self) -> None:
         super().__init__()
@@ -37,10 +46,18 @@ class SeedBuilderApp(tk.Tk):
         style.configure("Progress.Horizontal.TProgressbar", background="#007acc", troughcolor="#3c3c3c", bordercolor="#3c3c3c", lightcolor="#007acc", darkcolor="#007acc")
 
     def _build_ui(self) -> None:
-        shell = tk.Frame(self, bg="#252526", highlightbackground="#454545", highlightthickness=1, padx=1, pady=1)
+        shell = tk.Canvas(self, bg="#181818", highlightthickness=0)
         shell.pack(fill="both", expand=True)
-        main = ttk.Frame(shell, padding=24)
-        main.pack(fill="both", expand=True)
+        main = tk.Frame(shell, bg="#252526", padx=24, pady=24, highlightbackground="#454545", highlightthickness=1)
+        window = shell.create_window((12, 12), window=main, anchor="nw")
+
+        def resize_shell(event):
+            shell.coords(window, 12, 12)
+            shell.itemconfigure(window, width=max(1, event.width - 24), height=max(1, event.height - 24))
+            shell.delete("shell_border")
+            rounded_rectangle(shell, 12, 12, event.width - 12, event.height - 12, 14, fill="#252526", outline="#454545", tags=("shell_border",))
+            shell.tag_lower("shell_border", window)
+        shell.bind("<Configure>", resize_shell)
 
         header = ttk.Frame(main)
         header.pack(fill="x", pady=(0, 18))
@@ -50,14 +67,28 @@ class SeedBuilderApp(tk.Tk):
         self._add_path_row(main, "תיקיית תרגול", self.folder_var, self.choose_folder)
         self._add_path_row(main, "קובץ יעד", self.output_var, self.choose_output)
 
-        log_frame = ttk.LabelFrame(main, text="לוג ייבוא", style="Card.TLabelframe", padding=10)
-        log_frame.pack(fill="both", expand=True, pady=(4, 12))
+        log_canvas = tk.Canvas(main, bg="#252526", highlightthickness=0, height=190)
+        log_canvas.pack(fill="both", expand=True, pady=(4, 12))
+        log_canvas.create_text(14, 12, text="לוג ייבוא", fill="#cccccc", font=("Segoe UI", 10, "bold"), anchor="ne", tags=("log_border",))
         self.status = tk.Text(
-            log_frame, height=12, state="disabled", wrap="word", font=("Consolas", 10),
+            log_canvas, height=12, state="disabled", wrap="word", font=("Consolas", 10),
             bg="#1e1e1e", fg="#cccccc", insertbackground="#cccccc", relief="flat", padx=10, pady=10,
             justify="right",
         )
-        self.status.pack(fill="both", expand=True)
+        log_canvas.create_window((10, 36), window=self.status, anchor="nw", width=680, height=140, tags=("status_window",))
+        def resize_log(event):
+            log_canvas.delete("log_border")
+            rounded_rectangle(log_canvas, 1, 1, event.width - 1, event.height - 1, 12, fill="#252526", outline="#454545", tags=("log_border",))
+            log_canvas.coords("status_window", 10, 36)
+            log_canvas.itemconfigure("status_window", width=max(1, event.width - 20), height=max(1, event.height - 46))
+        log_canvas.bind("<Configure>", resize_log)
+
+    def set_import_enabled(self, enabled: bool) -> None:
+        color = "#007acc" if enabled else "#094771"
+        self.import_button.itemconfigure("button_bg", fill=color, outline=color)
+        self.import_button.unbind("<Button-1>")
+        if enabled:
+            self.import_button.bind("<Button-1>", lambda event: self.build())
         self.status.tag_configure("info", foreground="#cccccc")
         self.status.tag_configure("success", foreground="#89d185")
         self.status.tag_configure("error", foreground="#f48771")
@@ -68,7 +99,12 @@ class SeedBuilderApp(tk.Tk):
         self.progress = ttk.Progressbar(bottom, mode="determinate", maximum=100, style="Progress.Horizontal.TProgressbar")
         self.progress.pack(side="left", fill="x", expand=True, padx=(0, 18))
         self.progress["value"] = 0
-        self.import_button = ttk.Button(bottom, text="יבא נתונים", style="Import.TButton", command=self.build)
+        self.import_button = tk.Canvas(bottom, width=150, height=42, bg="#252526", highlightthickness=0)
+        rounded_rectangle(self.import_button, 1, 1, 149, 41, 10, fill="#007acc", outline="#007acc", tags=("button_bg",))
+        self.import_button.create_text(75, 21, text="יבא נתונים", fill="#ffffff", font=("Segoe UI", 11, "bold"), tags=("button_text",))
+        self.import_button.bind("<Button-1>", lambda event: self.build())
+        self.import_button.bind("<Enter>", lambda event: self.import_button.itemconfigure("button_bg", fill="#1488d4"))
+        self.import_button.bind("<Leave>", lambda event: self.import_button.itemconfigure("button_bg", fill="#007acc"))
         self.import_button.pack(side="right", ipadx=18, ipady=6)
         self.log("מוכן לייבוא. בחרו תיקיית תרגול וקובץ יעד.", "info")
 
@@ -115,7 +151,7 @@ class SeedBuilderApp(tk.Tk):
             return
 
         try:
-            self.import_button.configure(state="disabled")
+            self.set_import_enabled(False)
             self.progress["value"] = 5
             self.log("מתחיל ייבוא נתונים...", "info")
             seed, workbooks, errors = build_seed(Path(folder_text))
@@ -147,7 +183,7 @@ class SeedBuilderApp(tk.Tk):
         except Exception as exc:
             self.log(f"שגיאה בייבוא ושמירה: {exc}", "error")
         finally:
-            self.import_button.configure(state="normal")
+            self.set_import_enabled(True)
 
 
 if __name__ == "__main__":
