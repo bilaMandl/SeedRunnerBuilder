@@ -73,7 +73,6 @@ class SeedBuilderApp(tk.Tk):
         self.status = tk.Text(
             log_canvas, height=12, state="disabled", wrap="word", font=("Consolas", 10),
             bg="#1e1e1e", fg="#cccccc", insertbackground="#cccccc", relief="flat", padx=10, pady=10,
-            justify="right",
         )
         log_canvas.create_window((10, 36), window=self.status, anchor="nw", width=680, height=140, tags=("status_window",))
         def resize_log(event):
