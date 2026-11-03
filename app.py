@@ -1,6 +1,9 @@
 from __future__ import annotations
 
 import tkinter as tk
+import os
+import subprocess
+import sys
 from datetime import datetime
 from pathlib import Path
 from tkinter import filedialog, ttk
@@ -180,10 +183,24 @@ class SeedBuilderApp(tk.Tk):
             )
             self.log(f"הקובץ נשמר בנתיב: {output.resolve()}", "success")
             self.log(f"סיכום: {len(workbooks)} קובצי Excel, {question_count} שאלות", "success")
+            self.open_output_folder(output)
         except Exception as exc:
             self.log(f"שגיאה בייבוא ושמירה: {exc}", "error")
         finally:
             self.set_import_enabled(True)
+
+    def open_output_folder(self, output: Path) -> None:
+        folder = output.resolve().parent
+        try:
+            if os.name == "nt":
+                os.startfile(folder)
+            elif sys.platform == "darwin":
+                subprocess.run(["open", folder], check=True)
+            else:
+                subprocess.run(["xdg-open", folder], check=True)
+            self.log(f"תיקיית היעד נפתחה: {folder}", "success")
+        except Exception as exc:
+            self.log(f"לא ניתן לפתוח את תיקיית היעד: {exc}", "error")
 
 
 if __name__ == "__main__":
