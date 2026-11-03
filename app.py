@@ -46,18 +46,13 @@ class SeedBuilderApp(tk.Tk):
         style.configure("Progress.Horizontal.TProgressbar", background="#007acc", troughcolor="#3c3c3c", bordercolor="#3c3c3c", lightcolor="#007acc", darkcolor="#007acc")
 
     def _build_ui(self) -> None:
-        shell = tk.Canvas(self, bg="#181818", highlightthickness=0)
+        shell = tk.Frame(self, bg="#181818", highlightthickness=0)
         shell.pack(fill="both", expand=True)
-        main = tk.Frame(shell, bg="#252526", padx=24, pady=24, highlightbackground="#454545", highlightthickness=1)
-        window = shell.create_window((12, 12), window=main, anchor="nw")
-
-        def resize_shell(event):
-            shell.coords(window, 12, 12)
-            shell.itemconfigure(window, width=max(1, event.width - 24), height=max(1, event.height - 24))
-            shell.delete("shell_border")
-            rounded_rectangle(shell, 12, 12, event.width - 12, event.height - 12, 14, fill="#252526", outline="#454545", tags=("shell_border",))
-            shell.tag_lower("shell_border", window)
-        shell.bind("<Configure>", resize_shell)
+        main = tk.Frame(
+            shell, bg="#252526", padx=24, pady=24,
+            highlightbackground="#454545", highlightthickness=1,
+        )
+        main.pack(fill="both", expand=True, padx=12, pady=12)
 
         header = ttk.Frame(main)
         header.pack(fill="x", pady=(0, 18))
