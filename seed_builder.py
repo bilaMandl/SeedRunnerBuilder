@@ -36,6 +36,14 @@ def build_seed(folder: Path) -> tuple[dict[str, Any], list[Path], list[str]]:
     return seed, workbooks, errors
 
 
+def workbook_question_count(
+    seed: dict[str, Any],
+    workbook: Path,
+) -> int:
+    workbook_seed = seed.get(workbook.parent.name, {}).get(workbook.stem, {})
+    return sum(len(questions) for questions in workbook_seed.values())
+
+
 RUNNER_TEMPLATE = '''from __future__ import annotations
 
 import json

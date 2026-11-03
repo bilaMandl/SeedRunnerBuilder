@@ -8,7 +8,7 @@ from datetime import datetime
 from pathlib import Path
 from tkinter import filedialog, ttk
 
-from seed_builder import build_seed, write_runner
+from seed_builder import build_seed, workbook_question_count, write_runner
 
 
 def rounded_rectangle(canvas: tk.Canvas, x1: int, y1: int, x2: int, y2: int, radius: int, **kwargs):
@@ -161,13 +161,7 @@ class SeedBuilderApp(tk.Tk):
             self.progress["value"] = 70
             for workbook in workbooks:
                 if not any(workbook.name in error for error in errors):
-                    count = sum(
-                        len(questions)
-                        for subject in seed.values()
-                        for files in subject.values()
-                        if workbook.stem in files
-                        for questions in files[workbook.stem].values()
-                    ) if workbook.stem else 0
+                    count = workbook_question_count(seed, workbook)
                     self.log(f"קובץ עובד: {workbook.name} ({count} שאלות)", "success")
             for error in errors:
                 self.log(error, "error")
