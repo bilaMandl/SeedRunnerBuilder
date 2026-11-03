@@ -14,7 +14,7 @@ class SeedBuilderApp(tk.Tk):
         self.title("Seed Runner Builder")
         self.geometry("820x620")
         self.minsize(720, 560)
-        self.configure(bg="#1e1e1e")
+        self.configure(bg="#181818", padx=12, pady=12)
 
         self.folder_var = tk.StringVar()
         self.output_var = tk.StringVar(value=str(Path.cwd() / "SEED_RUNNER.py"))
@@ -27,7 +27,7 @@ class SeedBuilderApp(tk.Tk):
         style.configure(".", background="#1e1e1e", foreground="#cccccc", font=("Segoe UI", 10))
         style.configure("Title.TLabel", background="#1e1e1e", foreground="#ffffff", font=("Segoe UI", 19, "bold"))
         style.configure("Subtitle.TLabel", background="#1e1e1e", foreground="#858585", font=("Segoe UI", 10))
-        style.configure("Card.TLabelframe", background="#252526", foreground="#cccccc", bordercolor="#3c3c3c")
+        style.configure("Card.TLabelframe", background="#252526", foreground="#cccccc", bordercolor="#454545", relief="flat", borderwidth=1)
         style.configure("Card.TLabelframe.Label", background="#252526", foreground="#cccccc", font=("Segoe UI", 10, "bold"))
         style.configure("VSCode.TEntry", fieldbackground="#3c3c3c", foreground="#ffffff", insertcolor="#ffffff", borderwidth=1)
         style.configure("VSCode.TButton", background="#3c3c3c", foreground="#ffffff", borderwidth=0, padding=(14, 8))
@@ -37,13 +37,15 @@ class SeedBuilderApp(tk.Tk):
         style.configure("Progress.Horizontal.TProgressbar", background="#007acc", troughcolor="#3c3c3c", bordercolor="#3c3c3c", lightcolor="#007acc", darkcolor="#007acc")
 
     def _build_ui(self) -> None:
-        main = ttk.Frame(self, padding=24)
+        shell = tk.Frame(self, bg="#252526", highlightbackground="#454545", highlightthickness=1, padx=1, pady=1)
+        shell.pack(fill="both", expand=True)
+        main = ttk.Frame(shell, padding=24)
         main.pack(fill="both", expand=True)
 
         header = ttk.Frame(main)
         header.pack(fill="x", pady=(0, 18))
-        ttk.Label(header, text="SEED RUNNER", style="Title.TLabel").pack(anchor="w")
-        ttk.Label(header, text="יצירת קובץ הרצה מנתוני תרגול מתוך Excel", style="Subtitle.TLabel").pack(anchor="w", pady=(4, 0))
+        ttk.Label(header, text="SEED RUNNER", style="Title.TLabel").pack(side="right")
+        ttk.Label(header, text="יצירת קובץ הרצה מנתוני תרגול מתוך Excel", style="Subtitle.TLabel").pack(side="right", anchor="e", fill="x", expand=True, padx=(12, 0))
 
         self._add_path_row(main, "תיקיית תרגול", self.folder_var, self.choose_folder)
         self._add_path_row(main, "קובץ יעד", self.output_var, self.choose_output)
@@ -53,6 +55,7 @@ class SeedBuilderApp(tk.Tk):
         self.status = tk.Text(
             log_frame, height=12, state="disabled", wrap="word", font=("Consolas", 10),
             bg="#1e1e1e", fg="#cccccc", insertbackground="#cccccc", relief="flat", padx=10, pady=10,
+            justify="right",
         )
         self.status.pack(fill="both", expand=True)
         self.status.tag_configure("info", foreground="#cccccc")
@@ -62,8 +65,9 @@ class SeedBuilderApp(tk.Tk):
 
         bottom = ttk.Frame(main)
         bottom.pack(fill="x")
-        self.progress = ttk.Progressbar(bottom, mode="indeterminate", style="Progress.Horizontal.TProgressbar")
+        self.progress = ttk.Progressbar(bottom, mode="determinate", maximum=100, style="Progress.Horizontal.TProgressbar")
         self.progress.pack(side="left", fill="x", expand=True, padx=(0, 18))
+        self.progress["value"] = 0
         self.import_button = ttk.Button(bottom, text="יבא נתונים", style="Import.TButton", command=self.build)
         self.import_button.pack(side="right", ipadx=18, ipady=6)
         self.log("מוכן לייבוא. בחרו תיקיית תרגול וקובץ יעד.", "info")
@@ -71,7 +75,7 @@ class SeedBuilderApp(tk.Tk):
     def _add_path_row(self, parent: ttk.Frame, label: str, variable: tk.StringVar, callback) -> None:
         frame = ttk.LabelFrame(parent, text=label, style="Card.TLabelframe", padding=10)
         frame.pack(fill="x", pady=(0, 10))
-        ttk.Entry(frame, textvariable=variable, style="VSCode.TEntry").pack(side="right", fill="x", expand=True, padx=(10, 0))
+        ttk.Entry(frame, textvariable=variable, style="VSCode.TEntry", justify="right").pack(side="right", fill="x", expand=True, padx=(10, 0))
         ttk.Button(frame, text="בחירה…", style="VSCode.TButton", command=callback).pack(side="right", padx=(10, 0))
 
     def choose_folder(self) -> None:
@@ -112,9 +116,10 @@ class SeedBuilderApp(tk.Tk):
 
         try:
             self.import_button.configure(state="disabled")
-            self.progress.start(12)
+            self.progress["value"] = 5
             self.log("מתחיל ייבוא נתונים...", "info")
             seed, workbooks, errors = build_seed(Path(folder_text))
+            self.progress["value"] = 70
             for workbook in workbooks:
                 if not any(workbook.name in error for error in errors):
                     count = sum(
@@ -130,18 +135,18 @@ class SeedBuilderApp(tk.Tk):
 
             output = Path(output_text)
             write_runner(seed, output)
+            self.progress["value"] = 100
             question_count = sum(
                 len(questions)
                 for subject in seed.values()
                 for workbook_seed in subject.values()
                 for questions in workbook_seed.values()
             )
-            self.log(f"קובץ SEED_RUNNER נשמר בהצלחה: {output}", "success")
+            self.log(f"הקובץ נשמר בנתיב: {output.resolve()}", "success")
             self.log(f"סיכום: {len(workbooks)} קובצי Excel, {question_count} שאלות", "success")
         except Exception as exc:
             self.log(f"שגיאה בייבוא ושמירה: {exc}", "error")
         finally:
-            self.progress.stop()
             self.import_button.configure(state="normal")
 
 
